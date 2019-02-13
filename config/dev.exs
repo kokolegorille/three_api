@@ -13,13 +13,9 @@ config :three_api, ThreeApiWeb.Endpoint,
   check_origin: false,
   watchers: [
     yarn: [
-      "start",
+      "watch",
       cd: Path.expand("../assets", __DIR__)
     ],
-    yarn: [
-      "webpack",
-      cd: Path.expand("../assets", __DIR__)
-    ]
   ]
 
 # Watch static and templates for browser reloading.

@@ -8,4 +8,8 @@ defmodule ThreeApiWeb.Router do
   scope "/api", ThreeApiWeb do
     pipe_through :api
   end
+
+  scope "/", ThreeApiWeb do
+    get "/*path", StaticController, :index
+  end
 end

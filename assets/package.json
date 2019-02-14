@@ -4,11 +4,13 @@
   "scripts": {
     "watch": "webpack --env.development --watch --mode development",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "webpack": "webpack -w",
     "webpack:production": "NODE_ENV=production webpack"
   },
   "dependencies": {
-    "phoenix": "^1.4.1"
+    "phoenix": "^1.4.1",
+    "three": "^0.101.1",
+    "three-fbxloader-offical": "^1.0.0",
+    "three-orbit-controls": "^82.1.0"
   },
   "main": "index.js",
   "license": "MIT",

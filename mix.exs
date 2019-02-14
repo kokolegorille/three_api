@@ -43,6 +43,7 @@ defmodule ThreeApi.MixProject do
       {:plug_cowboy, "~> 2.0"},
       #
       {:phoenix_live_reload, "~> 1.2", only: :dev},
+      {:uuid, "~> 1.1"},
     ]
   end
 

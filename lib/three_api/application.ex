@@ -11,9 +11,13 @@ defmodule ThreeApi.Application do
       # Start the Ecto repository
       ThreeApi.Repo,
       # Start the endpoint when the application starts
-      ThreeApiWeb.Endpoint
+      ThreeApiWeb.Endpoint,
       # Starts a worker by calling: ThreeApi.Worker.start_link(arg)
       # {ThreeApi.Worker, arg},
+
+      {Registry, keys: :unique, name: Registry.GameWorkers},
+      ThreeApi.Game.GameManager,
+      ThreeApi.Game.WorkerSup,
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

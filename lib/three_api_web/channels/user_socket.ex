@@ -3,6 +3,7 @@ defmodule ThreeApiWeb.UserSocket do
 
   ## Channels
   # channel "room:*", ThreeApiWeb.RoomChannel
+  channel "game:*", ThreeApiWeb.GameChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After

@@ -3,14 +3,26 @@ import WEBGL from './WebGL';
 import Orbit from 'three-orbit-controls';
 const OrbitControls = Orbit(THREE);
 
-import {JoyStick} from './toon3d';
+import {JoyStick, Preloader} from './toon3d';
 import LocalPlayer from './local_player';
+import FBXLoader from './FBXLoader';
 
 const ModeEnum = {
   NONE: 1,
   PRELOAD: 2,
-  LOADED: 3,
+  INITIALISING: 3,
+  LOADED: 4,
 };
+
+const COLOURS = [
+  'Black', 'Brown', 'White'
+];
+
+const PEOPLE = [
+  'BeachBabe', 'BusinessMan', 'Doctor', 'FireFighter', 'Housewife', 
+  'Policeman', 'Prostitute', 'Punk', 'RiotCop', 'Roadworker', 
+  'Robber', 'Sheriff', 'Streetman', 'Waitress'
+];
 
 export default class Game {
   constructor() {
@@ -28,23 +40,43 @@ export default class Game {
     
     this.clock = new THREE.Clock();
 
-    // this.anims = [
-    //   'Walking', 'Backwards', 'Running', 
-    //   'Left Turn', 'Right Turn', 
-    //   'Pointing'
-    // ];
     this.anims = [
       'Walking', 'Walking Backwards', 'Running', 
-      'Turn', 
-      'Pointing'
+      'Left Turn', 'Right Turn', 
+      'Pointing', 'Pointing Gesture', 
+      // 'Samba Dancing',
+      'Belly Dance',
     ];
+    this.assetsPath = '/fbx/';
+
+    this.mode = ModeEnum.PRELOAD;
+
+    const game = this;
+    const options = {
+			assets:[
+				`/images/nx.jpg`,
+				`/images/px.jpg`,
+				`/images/ny.jpg`,
+				`/images/py.jpg`,
+				`/images/nz.jpg`,
+				`/images/pz.jpg`
+			],
+			oncomplete: function(){
+				game.init();
+			}
+		}
+    this.anims.forEach(anim => options.assets.push(`${this.assetsPath}anims/${anim}.fbx`));
+		options.assets.push(`${this.assetsPath}town.fbx`);
+    const preloader = new Preloader(options);
 
     this.id;
 
-    this.init();
+    // this.init();
   }
 
   init() {
+    this.mode = ModeEnum.INITIALISING;
+
     this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 10, 20000 );
     this.camera.position.set(112, 100, 600);
     
@@ -57,15 +89,29 @@ export default class Game {
     this.sun = this.createSun();
     this.scene.add( this.sun );
     
-    this.scene.add( this.createGround() );
-    this.scene.add( this.createGrid() );
-
-    this.mode = ModeEnum.PRELOAD;
+    // this.scene.add( this.createGround() );
+    // this.scene.add( this.createGrid() );
 
     // Define a clojure for this.handlePlayerLoaded!
     const game = this;
-    this.player = new LocalPlayer({model: "Doctor", anims: this.anims}, this.handlePlayerLoaded);
-    this.scene.add(game.player.object);
+    const model = PEOPLE[Math.floor(Math.random()*PEOPLE.length)];
+    const colour = COLOURS[Math.floor(Math.random()*COLOURS.length)];
+
+    this.player = new LocalPlayer(
+      this, 
+      {
+        model, 
+        colour, 
+        anims: this.anims,
+        colliders: this.colliders,
+      }, 
+      this.handlePlayerLoaded
+    );
+    this.scene.add(this.player.object);
+
+    // Environment
+    const loader = new FBXLoader();
+    this.loadEnvironment(loader);
 
     this.renderer = new THREE.WebGLRenderer( { antialias: true } );
     this.renderer.setPixelRatio( window.devicePixelRatio );
@@ -73,10 +119,10 @@ export default class Game {
     this.renderer.shadowMap.enabled = true;
     this.container.appendChild( this.renderer.domElement );
 
-    // Orbit controls
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.target.set(0, 150, 0);
-    this.controls.update();
+    // // Orbit controls
+    // this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    // this.controls.target.set(0, 150, 0);
+    // this.controls.update();
 
     if ('ontouchstart' in window){
 			window.addEventListener( 'touchdown', event => this.onMouseDown(event), false );
@@ -91,9 +137,57 @@ export default class Game {
   handlePlayerLoaded() {
     game.joystick = game.createJoystick();
     game.createCameras();
-    game.mode = ModeEnum.LOADED;
     console.log(game.id)
   }
+
+  loadEnvironment(loader){
+		const game = this;
+		loader.load(`/fbx/town.fbx`, object => {
+			game.environment = object;
+			game.colliders = [];
+			game.scene.add(object);
+			object.traverse( function ( child ) {
+				if ( child.isMesh ) {
+					if (child.name.startsWith("proxy")){
+						game.colliders.push(child);
+						child.material.visible = false;
+					}else{
+						child.castShadow = true;
+						child.receiveShadow = true;
+					}
+				}
+			} );
+			
+			const tloader = new THREE.CubeTextureLoader();
+			tloader.setPath( `${game.assetsPath}/images/` );
+
+			var textureCube = tloader.load( [
+				'px.jpg', 'nx.jpg',
+				'py.jpg', 'ny.jpg',
+				'pz.jpg', 'nz.jpg'
+			] );
+
+			game.scene.background = textureCube;
+			
+			game.loadNextAnim(loader);
+		})
+	}
+
+	loadNextAnim(loader){
+		let anim = this.anims.pop();
+		const game = this;
+		loader.load( `/fbx/anims/${anim}.fbx`, function( object ){
+			game.player.animations[anim] = object.animations[0];
+			if (game.anims.length>0){
+				game.loadNextAnim(loader);
+			}else{
+				delete game.anims;
+				game.action = "Idle";
+				game.mode = ModeEnum.LOADED;
+				game.animate();
+			}
+		});	
+	}
 
   createHemisphereLight() {
     let light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
@@ -119,22 +213,22 @@ export default class Game {
     return light;
   }
 
-  createGround() {
-    let ground = new THREE.Mesh( 
-      new THREE.PlaneBufferGeometry( 10000, 10000 ), 
-      new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) 
-    );
-		ground.rotation.x = - Math.PI / 2;
-    ground.receiveShadow = true;
-    return ground;
-  }
+  // createGround() {
+  //   let ground = new THREE.Mesh( 
+  //     new THREE.PlaneBufferGeometry( 10000, 10000 ), 
+  //     new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) 
+  //   );
+	// 	ground.rotation.x = - Math.PI / 2;
+  //   ground.receiveShadow = true;
+  //   return ground;
+  // }
 
-  createGrid() {
-    let grid = new THREE.GridHelper( 5000, 40, 0x000000, 0x000000 );
-		grid.material.opacity = 0.2;
-    grid.material.transparent = true;
-    return grid;
-  }
+  // createGrid() {
+  //   let grid = new THREE.GridHelper( 5000, 40, 0x000000, 0x000000 );
+	// 	grid.material.opacity = 0.2;
+  //   grid.material.transparent = true;
+  //   return grid;
+  // }
 
   createJoystick() {
     return new JoyStick({
@@ -175,12 +269,10 @@ export default class Game {
 			if (this.player.action != 'Walking Backwards') this.player.action = 'Walking Backwards';
 		} else {
       forward = 0;
-      if (Math.abs(turn)>0.1){
-				if (this.player.action != 'Turn') this.action = 'Turn';
-      // if (turn>0.1){
-      //   if (this.player.action != 'Left Turn') this.player.action = 'Left Turn';
-      // } else if (turn<-0.1) {
-      //   if (this.player.action != 'Right Turn') this.player.action = 'Right Turn';
+      if (turn>0.1){
+        if (this.player.action != 'Left Turn') this.player.action = 'Left Turn';
+      } else if (turn<-0.1) {
+        if (this.player.action != 'Right Turn') this.player.action = 'Right Turn';
 			} else {
         turn = 0;
 				if (this.player.action != 'Idle') this.player.action = 'Idle';
@@ -201,9 +293,13 @@ export default class Game {
     mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1;
 
     // Toggle camera in chat mode
-    if (this.player.activeCamera === this.player.cameras.back)
+    if (this.player.activeCamera === this.player.cameras.back) {
       this.player.activeCamera = this.player.cameras.chat;	
-    else this.player.activeCamera = this.player.cameras.back;	
+      this.player.action='Pointing'
+    } else {
+      this.player.activeCamera = this.player.cameras.back;
+      this.player.action='Idle'
+    }
 
     console.log("MOUSE DOWN : ", mouse);
   }
@@ -225,10 +321,19 @@ export default class Game {
 
     if (this.player.action=='Walking'){
 			const elapsedTime = Date.now() - this.player.actionTime;
-			if (elapsedTime>2000){
-				this.player.action = 'Running';
-			}
+			if (elapsedTime>2000) {this.player.action = 'Running';}
     }
+
+    if (this.player.action=='Pointing'){
+			const elapsedTime = Date.now() - this.player.actionTime;
+			if (elapsedTime>2800) {this.player.action = 'Pointing Gesture';}
+    }
+
+    if (this.player.action=='Pointing Gesture'){
+			const elapsedTime = Date.now() - this.player.actionTime;
+			if (elapsedTime>1800) {this.player.action = 'Belly Dance';}
+    }
+
     if (this.player.motion !== undefined) {
       this.player.move(delta);
       this.idleStatus = false;

@@ -12,6 +12,7 @@ export default class Player {
     this.colour = options['colour'] || "White";
     this.anims = options['anims'] || [];
     this.colliders = options['colliders'] || [];
+    this.collider = [];
 
     this.animations = this.game.animations;
 
@@ -42,7 +43,8 @@ export default class Player {
     loader.load(`${this.assetsPath}people/${this.model}.fbx`, object => {
       object.mixer = new THREE.AnimationMixer( object );
       this.mixer = object.mixer;
-      this.root = object.mixer.getRoot();
+      // this.root = object.mixer.getRoot();
+      this.root = object;
       object.name = this.model;
       
       object.traverse(child => {
@@ -54,7 +56,7 @@ export default class Player {
 
 			const textureLoader = new THREE.TextureLoader();
 			
-			textureLoader.load(`/images/SimplePeople_${this.model}_${this.colour}.png`, function(texture){
+			textureLoader.load(`/images/SimplePeople_${this.model}_${this.colour}.png`, texture => {
 				object.traverse( function ( child ) {
 					if ( child.isMesh ){
 						child.material.map = texture;
@@ -67,42 +69,26 @@ export default class Player {
 
       this.object.add(object);
       this.animations.Idle = object.animations[0];
-      
-      // this.loadNextAnim(loader);
 
       console.log(`Model ${this.model} loaded`);
-      this.callback(this);
       delete this.anims;
       this.action = this.initialAction;
 
+      // Add a box mesh to remote player only, for raycaster detection!
+      if (!this.local) {
+        const geometry = new THREE.BoxGeometry(100,300,100);
+        const material = new THREE.MeshBasicMaterial({visible:false});
+        const box = new THREE.Mesh(geometry, material);
+        box.name = "Collider";
+        box.position.set(0, 150, 0);
+        this.object.add(box);
+        this.collider = box;
+      }
+      
+      this.callback(this);
+
     }, undefined, e =>console.log(e));
   }
-
-  // loadNextAnim(loader){
-	// 	let anim = this.anims.pop();
-  //   loader.load( `${this.assetsPath}anims/${anim}.fbx`, object => {
-	// 		this.animations[anim] = object.animations[0];
-	// 		if (this.anims.length>0){
-  //       this.loadNextAnim(loader);
-	// 		} else {
-  //       console.log(`Model ${this.model} loaded`);
-  //       this.callback();
-  //       delete this.anims;
-  //       this.action = this.initialAction;
-	// 		}
-	// 	}, undefined, e => console.log(e));
-  // }
-
-  // set action(name){
-	// 	const action = this.mixer.clipAction(this.animations[name]);
-  //   action.time = 0;
-	// 	this.mixer.stopAllAction();
-	// 	this.actionTime = Date.now();
-  //   this.actionName = name;
-		
-	// 	action.fadeIn(0.5);	
-	// 	action.play();
-	// }
     
   set action(name){
     if (this.actionName == name) return;
@@ -124,16 +110,6 @@ export default class Player {
     if (this===undefined || this.actionName===undefined) return "";
     return this.actionName;
   }
-
-  // move(dt){	
-  //   if (this.motion.forward>0) {
-  //     const speed = (this.action=='Running') ? 400 : 150;
-  //     this.object.translateZ(dt*speed);
-  //   }else{
-  //     this.object.translateZ(-dt*30);
-  //   }
-  //   this.object.rotateY(this.motion.turn*dt);
-  // }
 
   // ONLY FOR LOCAL PLAYER
   move(dt){	

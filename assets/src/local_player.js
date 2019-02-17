@@ -4,21 +4,15 @@ export default class LocalPlayer extends Player {
   init() {
     super.init();
     this.local = true;
-    this.initPlayer();
+    this.initLocalPlayer();
   }
 
   move(dt) {
     super.move(dt);
-    this.updatePlayer();
+    this.updateLocalPlayer();
   }
 
-  update() {
-    // Send an update message 
-    // when object transit to Idle
-    this.updatePlayer();
-  }
-
-  initPlayer() {
+  initLocalPlayer() {
     let state = {
       model: this.model,
       colour: this.colour,
@@ -29,11 +23,11 @@ export default class LocalPlayer extends Player {
       pb: this.object.rotation.x,
       action: this.action
     }
-    console.log("INIT : ", state);
+    // console.log("INIT : ", state);
     this.game.send_command('init', state);
   }
 
-  updatePlayer() {
+  updateLocalPlayer() {
     let state = {
       x: this.object.position.x,
       y: this.object.position.y,
@@ -42,7 +36,7 @@ export default class LocalPlayer extends Player {
       pb: this.object.rotation.x,
       action: this.action
     }
-    console.log("UPDATE : ", state);
+    // console.log("UPDATE : ", state);
     this.game.send_command('update', state);
   }
 }

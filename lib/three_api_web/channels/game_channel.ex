@@ -2,7 +2,7 @@ defmodule ThreeApiWeb.GameChannel do
   use ThreeApiWeb, :channel
   require Logger
   @name __MODULE__
-  @refresh_time_in_ms 100
+  @refresh_time_in_ms 30
   alias ThreeApi.Game
   alias ThreeApi.Game.GameManager
 
@@ -94,6 +94,11 @@ defmodule ThreeApiWeb.GameChannel do
     |> Enum.map(fn p -> {p.id, p} end)
     |> Enum.into(%{})
 
-    Enum.filter(world, fn player -> player != Map.get(previous_map, player.id) end)
+    # Filter player's event that were the same in the previous state
+    # except for in place action!
+    Enum.filter(world, fn player ->
+      player.action in ["Pointing", "Pointing Gesture", "Belly Dance"] ||
+      player != Map.get(previous_map, player.id)
+    end)
   end
 end

@@ -219,23 +219,6 @@ export default class Game {
     return light;
   }
 
-  // createGround() {
-  //   let ground = new THREE.Mesh( 
-  //     new THREE.PlaneBufferGeometry( 10000, 10000 ), 
-  //     new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) 
-  //   );
-	// 	ground.rotation.x = - Math.PI / 2;
-  //   ground.receiveShadow = true;
-  //   return ground;
-  // }
-
-  // createGrid() {
-  //   let grid = new THREE.GridHelper( 5000, 40, 0x000000, 0x000000 );
-	// 	grid.material.opacity = 0.2;
-  //   grid.material.transparent = true;
-  //   return grid;
-  // }
-
   createJoystick() {
     return new JoyStick({
       onMove: this.playerControl,
@@ -298,6 +281,8 @@ export default class Game {
 		mouse.x = ( event.clientX / this.renderer.domElement.clientWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / this.renderer.domElement.clientHeight ) * 2 + 1;
 
+    console.log("MOUSE DOWN : ", mouse);
+
     // Toggle camera in chat mode
     if (this.player.activeCamera === this.player.cameras.back) {
       this.player.activeCamera = this.player.cameras.chat;	
@@ -306,8 +291,24 @@ export default class Game {
       this.player.activeCamera = this.player.cameras.back;
       this.player.action='Idle'
     }
-    this.player.update();
-    console.log("MOUSE DOWN : ", mouse);
+    this.player.updateLocalPlayer();
+
+    // Detect remote collision
+    if (this.remoteColliders===undefined || this.remoteColliders.length==0) return;
+
+    const raycaster = new THREE.Raycaster();
+		raycaster.setFromCamera( mouse, this.camera );
+		
+    const intersects = raycaster.intersectObjects( this.remoteColliders );
+    
+    if (intersects.length>0) {
+      const object = intersects[0].object;
+      const remotePlayer = this.remotePlayers.filter(p => p.collider && p.collider == object).shift();
+
+      console.log("REMOTE COLLISION WITH : ", remotePlayer);
+    } else {
+      console.log("NO REMOTE COLLISION");
+    };
   }
 
   onWindowResize() {
@@ -327,11 +328,15 @@ export default class Game {
       this.player===undefined || 
       this.id===undefined
     ) return;
+
+    const remoteColliders = [];
     this.remotePlayers.forEach(player => {
       const playerData = this.remoteData.filter(data => data.id === player.id);
       playerData.forEach(data => player.update(delta, data));
+      remoteColliders.push(player.collider);
     });	
     this.remoteData = [];
+    this.remoteColliders = remoteColliders;
   }
 
   // RENDER
@@ -342,7 +347,6 @@ export default class Game {
     let delta = this.clock.getDelta();
 
     this.updateRemotePlayers(delta);
-
     if (this.player.mixer!=undefined && this.mode === ModeEnum.LOADED) this.player.mixer.update(delta);
 
     if (this.player.action=='Walking'){
@@ -364,13 +368,21 @@ export default class Game {
       }
     }
 
+    if (
+      this.player.action == 'Pointing' ||
+      this.player.action == 'Pointing Gesture' ||
+      this.player.action == 'Belly Dance'
+    ) {
+      this.player.updateLocalPlayer();
+    }
+
     if (this.player.motion !== undefined) {
       this.player.move(delta);
       this.idleStatus = false;
     } else if (!this.idleStatus) {
       // Detect when the local player stop moving!
       // this should be done only once when stopping
-      this.player.update();
+      this.player.updateLocalPlayer();
       this.idleStatus = true;
     };
 

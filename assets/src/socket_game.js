@@ -22,14 +22,19 @@ export default class SocketGame extends Game {
   }
 
   // Use game instead of this!!!
-  handlePlayerLoaded() {
+  handlePlayerLoaded(player) {
     super.handlePlayerLoaded();
     game.send_command('player_ready', {});
+    
+    // This will make the new local player visible
+    // to others connected people
+    player.updateLocalPlayer();
   }
 
   // Use game instead of this!!!
   handleRemotePlayerLoaded(player) {
     console.log(`REMOTE DATA LOADED : ${player.id}`);
+
     // Remove player from initialisingPlayers ...
     game.initialisingPlayers = game.initialisingPlayers.filter(p => p.id !== player.id);
     // ... and add it to remotePlayers
@@ -50,7 +55,7 @@ export default class SocketGame extends Game {
     this.channel = this.socket.channel(`game:${gameId}`, {});
 
     this.channel.on('world_init', payload => {
-      console.log(`WORLD INIT : ${payload}`);
+      // console.log(`WORLD INIT : ${payload}`);
       this.initialisingPlayers = payload
         .world
         .filter(player => player.id !== this.id) 
@@ -58,7 +63,7 @@ export default class SocketGame extends Game {
     });
 
     this.channel.on('world_update', payload => {
-      console.log(`WORLD UPDATE : ${payload}`);
+      // console.log(`WORLD UPDATE : ${payload}`);
       this.remoteData = this.remoteData.concat(
         // Filter payload.world from self data!
         payload.world.filter(p => p.id !== this.id)
@@ -66,12 +71,12 @@ export default class SocketGame extends Game {
     });
 
     this.channel.on('game_joined', payload => {
-      console.log(`GAME JOINED : ${payload}`);
+      // console.log(`GAME JOINED : ${payload}`);
       this.initialisingPlayers.push(new Player(game, payload.player, this.handleRemotePlayerLoaded));
     });
 
     this.channel.on('game_left', payload => {
-      console.log(`GAME LEFT : ${payload}`);
+      // console.log(`GAME LEFT : ${payload}`);
       this.initialisingPlayers = this.initialisingPlayers.filter(p => p.id !== payload.uuid);
 
       const player = this.remotePlayers.filter(p => p.id === payload.uuid).shift();

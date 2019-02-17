@@ -68,7 +68,7 @@ export default class Game {
 		}
     this.anims.forEach(anim => options.assets.push(`${this.assetsPath}anims/${anim}.fbx`));
 		options.assets.push(`${this.assetsPath}town.fbx`);
-    const preloader = new Preloader(options);
+    new Preloader(options);
 
     this.id;
 
@@ -93,9 +93,6 @@ export default class Game {
 
     this.sun = this.createSun();
     this.scene.add( this.sun );
-    
-    // this.scene.add( this.createGround() );
-    // this.scene.add( this.createGrid() );
 
     // Define a clojure for this.handlePlayerLoaded!
     const game = this;
@@ -142,7 +139,6 @@ export default class Game {
   handlePlayerLoaded() {
     game.joystick = game.createJoystick();
     game.createCameras();
-    console.log(game.id)
   }
 
   loadEnvironment(loader){
@@ -188,7 +184,7 @@ export default class Game {
 				game.loadNextAnim(loader);
 			}else{
 				delete game.anims;
-				game.action = "Idle";
+				game.action = 'Idle';
 				game.mode = ModeEnum.LOADED;
 				game.animate();
 			}

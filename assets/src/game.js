@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import WEBGL from './WebGL';
+import WEBGL from './libs/WebGL';
 import Orbit from 'three-orbit-controls';
 const OrbitControls = Orbit(THREE);
 
-import {JoyStick, Preloader} from './toon3d';
+import {JoyStick, Preloader} from './libs/toon3d';
 import LocalPlayer from './local_player';
-import FBXLoader from './FBXLoader';
+import FBXLoader from './libs/FBXLoader';
 
 const ModeEnum = {
   NONE: 1,
@@ -40,6 +40,7 @@ export default class Game {
     
     this.clock = new THREE.Clock();
 
+    this.animations = {};
     this.anims = [
       'Walking', 'Walking Backwards', 'Running', 
       'Left Turn', 'Right Turn', 
@@ -54,12 +55,12 @@ export default class Game {
     const game = this;
     const options = {
 			assets:[
-				`/images/nx.jpg`,
-				`/images/px.jpg`,
-				`/images/ny.jpg`,
-				`/images/py.jpg`,
-				`/images/nz.jpg`,
-				`/images/pz.jpg`
+				'/images/nx.jpg',
+				'/images/px.jpg',
+				'/images/ny.jpg',
+				'/images/py.jpg',
+				'/images/nz.jpg',
+				'/images/pz.jpg'
 			],
 			oncomplete: function(){
 				game.init();
@@ -71,7 +72,11 @@ export default class Game {
 
     this.id;
 
-    // this.init();
+    // Remote
+    this.remoteData = [];
+    this.initialisingPlayers = [];
+    this.remotePlayers = [];
+    this.remoteColliders = [];
   }
 
   init() {
@@ -82,7 +87,7 @@ export default class Game {
     
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color( 0xa0a0a0 );
-    this.scene.fog = new THREE.Fog( 0xa0a0a0, 1000, 5000 );
+    // this.scene.fog = new THREE.Fog( 0xa0a0a0, 1000, 5000 );
 
 		this.scene.add( this.createHemisphereLight() );
 
@@ -146,7 +151,7 @@ export default class Game {
 			game.environment = object;
 			game.colliders = [];
 			game.scene.add(object);
-			object.traverse( function ( child ) {
+			object.traverse(child => {
 				if ( child.isMesh ) {
 					if (child.name.startsWith("proxy")){
 						game.colliders.push(child);
@@ -159,7 +164,7 @@ export default class Game {
 			} );
 			
 			const tloader = new THREE.CubeTextureLoader();
-			tloader.setPath( `${game.assetsPath}/images/` );
+			tloader.setPath( '/images/' );
 
 			var textureCube = tloader.load( [
 				'px.jpg', 'nx.jpg',
@@ -177,7 +182,8 @@ export default class Game {
 		let anim = this.anims.pop();
 		const game = this;
 		loader.load( `/fbx/anims/${anim}.fbx`, function( object ){
-			game.player.animations[anim] = object.animations[0];
+      game.animations[anim] = object.animations[0];
+
 			if (game.anims.length>0){
 				game.loadNextAnim(loader);
 			}else{
@@ -300,7 +306,7 @@ export default class Game {
       this.player.activeCamera = this.player.cameras.back;
       this.player.action='Idle'
     }
-
+    this.player.update();
     console.log("MOUSE DOWN : ", mouse);
   }
 
@@ -310,12 +316,32 @@ export default class Game {
 		this.renderer.setSize( window.innerWidth, window.innerHeight );
   }
 
+  // REMOTE
+
+  updateRemotePlayers(delta) {
+    if (
+      this.remoteData===undefined ||
+      this.remoteData.length == 0 || 
+      this.remotePlayers===undefined ||
+      this.remotePlayers.length == 0 ||
+      this.player===undefined || 
+      this.id===undefined
+    ) return;
+    this.remotePlayers.forEach(player => {
+      const playerData = this.remoteData.filter(data => data.id === player.id);
+      playerData.forEach(data => player.update(delta, data));
+    });	
+    this.remoteData = [];
+  }
+
   // RENDER
 
   render() {
     requestAnimationFrame( () => this.render() );
 
     let delta = this.clock.getDelta();
+
+    this.updateRemotePlayers(delta);
 
     if (this.player.mixer!=undefined && this.mode === ModeEnum.LOADED) this.player.mixer.update(delta);
 
@@ -326,12 +352,16 @@ export default class Game {
 
     if (this.player.action=='Pointing'){
 			const elapsedTime = Date.now() - this.player.actionTime;
-			if (elapsedTime>2800) {this.player.action = 'Pointing Gesture';}
+      if (elapsedTime>2800) {
+        this.player.action = 'Pointing Gesture';
+      }
     }
 
     if (this.player.action=='Pointing Gesture'){
 			const elapsedTime = Date.now() - this.player.actionTime;
-			if (elapsedTime>1800) {this.player.action = 'Belly Dance';}
+      if (elapsedTime>1800) {
+        this.player.action = 'Belly Dance';
+      }
     }
 
     if (this.player.motion !== undefined) {
@@ -340,7 +370,7 @@ export default class Game {
     } else if (!this.idleStatus) {
       // Detect when the local player stop moving!
       // this should be done only once when stopping
-      this.player.idle();
+      this.player.update();
       this.idleStatus = true;
     };
 

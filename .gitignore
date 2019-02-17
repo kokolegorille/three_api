@@ -38,3 +38,4 @@ three_api-*.tar
 .DS_Store
 .elixir_ls/
 node_modules/
+/priv/static/

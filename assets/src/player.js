@@ -1,18 +1,19 @@
 import * as THREE from 'three';
 // import FBXLoader from 'three-fbxloader-offical';
-import FBXLoader from './FBXLoader';
+import FBXLoader from './libs/FBXLoader';
 
 export default class Player {
   constructor(game, options = {}, callback) {
     this.callback = callback; // Triggered after the loading...
     this.game = game;
 
+    this.id = options['id'];
     this.model = options['model'] || "FireFighter";
     this.colour = options['colour'] || "White";
     this.anims = options['anims'] || [];
     this.colliders = options['colliders'] || [];
 
-    this.animations = {};
+    this.animations = this.game.animations;
 
     this.assetsPath = '/fbx/';
     this.object = new THREE.Object3D();
@@ -29,8 +30,7 @@ export default class Player {
     this.euler = new THREE.Euler(this.pb, this.h, this.pb);
 
     this.initialAction = options['action'] || 'Idle';
-    this.id;
-
+    this.local = false;
     this.init();
   }
 
@@ -71,7 +71,7 @@ export default class Player {
       // this.loadNextAnim(loader);
 
       console.log(`Model ${this.model} loaded`);
-      this.callback();
+      this.callback(this);
       delete this.anims;
       this.action = this.initialAction;
 
@@ -106,8 +106,11 @@ export default class Player {
     
   set action(name){
     if (this.actionName == name) return;
+    const clip = (this.local) ? 
+      this.animations[name] : 
+      THREE.AnimationClip.parse(THREE.AnimationClip.toJSON(this.animations[name])); 
 
-		const action = this.mixer.clipAction(this.animations[name]);
+		const action = this.mixer.clipAction(clip);
     action.time = 0;
 		this.mixer.stopAllAction();
 		this.actionTime = Date.now();
@@ -132,6 +135,7 @@ export default class Player {
   //   this.object.rotateY(this.motion.turn*dt);
   // }
 
+  // ONLY FOR LOCAL PLAYER
   move(dt){	
     const pos = this.object.position.clone();
 		pos.y += 60;
@@ -208,5 +212,16 @@ export default class Player {
 		}
 		
 		this.object.rotateY(this.motion.turn*dt);
+  }
+
+  // ONLY FOR REMOTE PLAYER
+  update(delta, data) {
+    this.mixer.update(delta);
+    this.object.position.set( data.x, data.y, data.z );
+		const euler = new THREE.Euler(data.pb, data.h, data.pb);
+		this.object.quaternion.setFromEuler( euler );
+    
+    const newAction = data.action || 'Idle'; 
+    if (this.action !== newAction) this.action = newAction;
   }
 }

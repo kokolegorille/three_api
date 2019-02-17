@@ -35,9 +35,12 @@ defmodule ThreeApi.Game.GameManager do
       |> String.to_integer()
       |> Game.get_worker()
       |> Game.leave(uuid)
+
+      notify(%{type: :game_left, payload: %{id: id, uuid: uuid}})
     end
 
     state = Map.delete(state, pid)
+
     {:noreply, state}
   end
 
@@ -46,4 +49,6 @@ defmodule ThreeApi.Game.GameManager do
     Logger.debug fn -> "#{__MODULE__} stopped : #{inspect(reason)}" end
     :ok
   end
+
+  defp notify(message), do: Game.notify(message)
 end

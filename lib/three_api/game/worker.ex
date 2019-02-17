@@ -13,11 +13,19 @@ defmodule ThreeApi.Game.Worker do
 
   def get_state(game), do: GenServer.call(game, :get_state)
 
+  def get_world(game), do: GenServer.call(game, :get_world)
+
+  def get_player(game, uuid), do: GenServer.call(game, {:get_player, uuid})
+
+  def get_world_diff(game, previous_state), do: GenServer.call(game, {:get_world_diff, previous_state})
+
   def join(game, %Player{} = player), do: GenServer.call(game, {:join, player})
 
   def leave(game, %Player{} = player), do: GenServer.call(game, {:leave, player})
 
-  def update(game, %Player{} = player), do: GenServer.cast(game, {:update, player})
+  def ready(game, %Player{} = player), do: GenServer.call(game, {:ready, player})
+
+  def update(game, uuid, data), do: GenServer.cast(game, {:update, uuid, data})
 
   def whereis_name(name) do
     case Registry.lookup(RegWorkers, name) do
@@ -34,6 +42,18 @@ defmodule ThreeApi.Game.Worker do
 
   @impl GenServer
   def handle_call(:get_state, _from, state), do: {:reply, state, state}
+
+  @impl GenServer
+  def handle_call(:get_world, _from, state) do
+    reply = get_world_tally(state)
+    {:reply, reply, state}
+  end
+
+  @impl GenServer
+  def handle_call({:get_player, uuid}, _from, state) do
+    reply = Map.get(state, uuid)
+    {:reply, reply, state}
+  end
 
   @impl GenServer
   def handle_call({:join, %Player{id: id} = player}, _from, state) do
@@ -53,8 +73,14 @@ defmodule ThreeApi.Game.Worker do
   end
 
   @impl GenServer
-  def handle_cast({:update, %Player{id: id} = player}, state) do
-    state = Map.put(state, id, player)
+  def handle_call({:ready, %Player{id: id} = player}, _from, state) do
+    state = Map.update(state, id, %{player | status: :active}, & %{&1 | status: :active})
+    {:reply, state, state}
+  end
+
+  @impl GenServer
+  def handle_cast({:update, id, data}, state) do
+    state = Map.update!(state, id, & struct(&1, data))
     {:noreply, state}
   end
 
@@ -70,4 +96,10 @@ defmodule ThreeApi.Game.Worker do
   # Private
 
   defp via_tuple(name), do: {:via, Registry, {RegWorkers, name}}
+
+  defp get_world_tally(state) do
+    state
+    |> Enum.filter(fn {_k, v} -> v.status == :active end)
+    |> Enum.map(fn {_k, v} -> v end)
+  end
 end

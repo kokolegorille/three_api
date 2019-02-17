@@ -3,6 +3,7 @@ import Player from './player';
 export default class LocalPlayer extends Player {
   init() {
     super.init();
+    this.local = true;
     this.initPlayer();
   }
 
@@ -11,7 +12,7 @@ export default class LocalPlayer extends Player {
     this.updatePlayer();
   }
 
-  idle() {
+  update() {
     // Send an update message 
     // when object transit to Idle
     this.updatePlayer();
@@ -29,6 +30,7 @@ export default class LocalPlayer extends Player {
       action: this.action
     }
     console.log("INIT : ", state);
+    this.game.send_command('init', state);
   }
 
   updatePlayer() {
@@ -41,5 +43,6 @@ export default class LocalPlayer extends Player {
       action: this.action
     }
     console.log("UPDATE : ", state);
+    this.game.send_command('update', state);
   }
 }

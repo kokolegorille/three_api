@@ -21,7 +21,7 @@ defmodule ThreeApiWeb.Endpoint do
     at: "/",
     from: :three_api,
     gzip: false,
-    only: ~w(css fonts images js favicon.ico robots.txt fbx)
+    only: ~w(css fonts images js favicon.ico robots.txt fbx sfx)
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.

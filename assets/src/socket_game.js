@@ -25,7 +25,7 @@ export default class SocketGame extends Game {
   handlePlayerLoaded(player) {
     super.handlePlayerLoaded();
     game.send_command('player_ready', {});
-    
+
     // This will make the new local player visible
     // to others connected people
     player.updateLocalPlayer();

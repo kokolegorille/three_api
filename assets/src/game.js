@@ -3,9 +3,12 @@ import WEBGL from './libs/WebGL';
 import Orbit from 'three-orbit-controls';
 const OrbitControls = Orbit(THREE);
 
-import {JoyStick, Preloader} from './libs/toon3d';
-import LocalPlayer from './local_player';
+import {JoyStick, Preloader, SFX} from './libs/toon3d';
 import FBXLoader from './libs/FBXLoader';
+import Stats from './libs/stats.min';
+
+import LocalPlayer from './local_player';
+import SpeechBubble from './speech_bubble';
 
 const ModeEnum = {
   NONE: 1,
@@ -115,6 +118,10 @@ export default class Game {
     const loader = new FBXLoader();
     this.loadEnvironment(loader);
 
+    // Speech Bubble
+		this.speechBubble = new SpeechBubble(this, "", 150);
+		this.speechBubble.mesh.position.set(0, 350, 0);
+
     this.renderer = new THREE.WebGLRenderer( { antialias: true } );
     this.renderer.setPixelRatio( window.devicePixelRatio );
     this.renderer.setSize( window.innerWidth, window.innerHeight );
@@ -133,7 +140,31 @@ export default class Game {
 		}
     window.addEventListener( 'resize', () => this.onWindowResize(), false );
 
+    // Only for DEBUG!
+    this.initStats();
+    
+    // this.initSfx();
+
     this.render();
+  }
+
+  // initSfx(){
+	// 	this.sfx = {};
+	// 	this.sfx.context = new (window.AudioContext || window.webkitAudioContext)();
+	// 	this.sfx.gliss = new SFX({
+	// 		context: this.sfx.context,
+  //     src:{mp3:'/sfx/gliss.mp3', ogg:'/sfx/gliss.ogg'},
+  //     autoplay: true,
+	// 		loop: false,
+	// 		volume: 0.3
+  //   });
+  // }
+  
+  initStats() {
+    // https://github.com/mrdoob/stats.js
+    this.stats = new Stats();
+    this.stats.showPanel(0);  // 0: fps, 1: ms, 2: mb, 3+: custom
+    document.body.appendChild(this.stats.dom);
   }
 
   handlePlayerLoaded() {
@@ -223,7 +254,6 @@ export default class Game {
   }
 
   createCameras(){
-		const offset = new THREE.Vector3(0, 80, 0);
 		const front = new THREE.Object3D();
 		front.position.set(112, 100, 600);
 		front.parent = this.player.object;
@@ -232,7 +262,7 @@ export default class Game {
     back.parent = this.player.object;
     const chat = new THREE.Object3D();
 		chat.position.set(0, 200, -450);
-		chat.parent = this.player.object;
+    chat.parent = this.player.object;
 		const wide = new THREE.Object3D();
 		wide.position.set(178, 139, 1665);
 		wide.parent = this.player.object;
@@ -283,28 +313,65 @@ export default class Game {
     if (this.player.activeCamera === this.player.cameras.back) {
       this.player.activeCamera = this.player.cameras.chat;	
       this.player.action='Pointing'
+
+      // Detect remote collision
+      if (this.remoteColliders===undefined || this.remoteColliders.length==0) return;
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera( mouse, this.camera );
+      
+      const intersects = raycaster.intersectObjects( this.remoteColliders );
+      
+      if (intersects.length>0) {
+        const object = intersects[0].object;
+        const remotePlayer = this.remotePlayers.filter(p => p.collider && p.collider == object).shift();
+
+        console.log("REMOTE COLLISION WITH : ", remotePlayer);
+        const message = "Hello!"
+        this.speechBubble.player = remotePlayer;
+        this.speechBubble.update(message);
+        this.scene.add(this.speechBubble.mesh);
+        this.chatSocketId = remotePlayer.id;
+        
+      } else {
+        console.log("NO REMOTE COLLISION");
+      };
+      
     } else {
+      delete this.speechBubble.player;
+      delete this.chatSocketId;
+      if (this.speechBubble.mesh.parent!==null) {
+        this.speechBubble.mesh.parent.remove(this.speechBubble.mesh)
+      };
       this.player.activeCamera = this.player.cameras.back;
-      this.player.action='Idle'
+      this.player.action='Idle';
     }
     this.player.updateLocalPlayer();
 
-    // Detect remote collision
-    if (this.remoteColliders===undefined || this.remoteColliders.length==0) return;
+    // // Detect remote collision
+    // if (this.remoteColliders===undefined || this.remoteColliders.length==0) return;
 
-    const raycaster = new THREE.Raycaster();
-		raycaster.setFromCamera( mouse, this.camera );
+    // const raycaster = new THREE.Raycaster();
+		// raycaster.setFromCamera( mouse, this.camera );
 		
-    const intersects = raycaster.intersectObjects( this.remoteColliders );
+    // const intersects = raycaster.intersectObjects( this.remoteColliders );
     
-    if (intersects.length>0) {
-      const object = intersects[0].object;
-      const remotePlayer = this.remotePlayers.filter(p => p.collider && p.collider == object).shift();
+    // if (intersects.length>0) {
+    //   const object = intersects[0].object;
+    //   const remotePlayer = this.remotePlayers.filter(p => p.collider && p.collider == object).shift();
 
-      console.log("REMOTE COLLISION WITH : ", remotePlayer);
-    } else {
-      console.log("NO REMOTE COLLISION");
-    };
+    //   console.log("REMOTE COLLISION WITH : ", remotePlayer);
+    //   this.speechBubble.player = remotePlayer;
+		// 	this.speechBubble.update('');
+		// 	this.scene.add(this.speechBubble.mesh);
+    //   this.chatSocketId = remotePlayer.id;
+      
+    // } else {
+    //   console.log("NO REMOTE COLLISION");
+    //   if (this.speechBubble.mesh.parent!==null) this.speechBubble.mesh.parent.remove(this.speechBubble.mesh);
+		// 	delete this.speechBubble.player;
+		// 	delete this.chatSocketId;
+    // };
   }
 
   onWindowResize() {
@@ -338,7 +405,7 @@ export default class Game {
   // RENDER
 
   render() {
-    requestAnimationFrame( () => this.render() );
+    this.stats.begin();
 
     let delta = this.clock.getDelta();
 
@@ -364,6 +431,26 @@ export default class Game {
       }
     }
 
+    if (this.player.action=='Belly Dance'){
+      const elapsedTime = Date.now() - this.player.actionTime;
+      const animDurationInMs = 1000 * this.player.animations[this.player.action].duration
+
+      // Detect the end of the animation
+      if (elapsedTime>animDurationInMs) {
+        // Remove Speech Bubble
+        delete this.speechBubble.player;
+        delete this.chatSocketId;
+        if (this.speechBubble.mesh.parent!==null) {
+          this.speechBubble.mesh.parent.remove(this.speechBubble.mesh)
+        };
+        
+        // Exit from chat view
+        this.player.activeCamera = this.player.cameras.back;
+        this.player.action = 'Idle';
+        this.player.updateLocalPlayer();
+      }
+    }
+
     if (
       this.player.action == 'Pointing' ||
       this.player.action == 'Pointing Gesture' ||
@@ -375,7 +462,7 @@ export default class Game {
     if (this.player.motion !== undefined) {
       this.player.move(delta);
       this.idleStatus = false;
-    } else if (!this.idleStatus) {
+    } else if (!this.idleStatus && this.player.action == 'Idle') {
       // Detect when the local player stop moving!
       // this should be done only once when stopping
       this.player.updateLocalPlayer();
@@ -396,6 +483,12 @@ export default class Game {
       this.sun.target = this.player.object;
     }
 
+    if (this.speechBubble!==undefined) this.speechBubble.show(this.camera.position);
+
     this.renderer.render( this.scene, this.camera );
+
+    this.stats.end();
+
+    requestAnimationFrame( () => this.render() );
   }
 }

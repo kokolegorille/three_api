@@ -94,10 +94,10 @@ defmodule ThreeApiWeb.GameChannel do
     |> Enum.map(fn p -> {p.id, p} end)
     |> Enum.into(%{})
 
-    # Filter player's event that were the same in the previous state
-    # except for in place action!
+    # Filter player's event that were Idle, or the same as in
+    # the previous state except for in place action!
     Enum.filter(world, fn player ->
-      player.action in ["Idle", "Pointing", "Pointing Gesture", "Belly Dance"] ||
+      player.action in ["Pointing", "Pointing Gesture", "Belly Dance"] ||
       player != Map.get(previous_map, player.id)
     end)
   end

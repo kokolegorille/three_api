@@ -34,6 +34,9 @@ export default class Game {
       document.body.appendChild(warning);
       return false;
     };
+    
+    this.debug = true;
+    this.allowSound = true;
     this.mode = ModeEnum.NONE;
 
     // Container
@@ -141,24 +144,24 @@ export default class Game {
     window.addEventListener( 'resize', () => this.onWindowResize(), false );
 
     // Only for DEBUG!
-    this.initStats();
+    if (this.debug) this.initStats();
     
-    // this.initSfx();
+    if (this.allowSound) this.initSfx();
 
     this.render();
   }
 
-  // initSfx(){
-	// 	this.sfx = {};
-	// 	this.sfx.context = new (window.AudioContext || window.webkitAudioContext)();
-	// 	this.sfx.gliss = new SFX({
-	// 		context: this.sfx.context,
-  //     src:{mp3:'/sfx/gliss.mp3', ogg:'/sfx/gliss.ogg'},
-  //     autoplay: true,
-	// 		loop: false,
-	// 		volume: 0.3
-  //   });
-  // }
+  initSfx(){
+		this.sfx = {};
+		this.sfx.context = new (window.AudioContext || window.webkitAudioContext)();
+		this.sfx.gliss = new SFX({
+			context: this.sfx.context,
+      src:{mp3:'/sfx/TownTheme.mp3', ogg:'/sfx/TownTheme.ogg'},
+      autoplay: true,
+			loop: false,
+			volume: 0.3
+    });
+  }
   
   initStats() {
     // https://github.com/mrdoob/stats.js
@@ -327,7 +330,7 @@ export default class Game {
         const remotePlayer = this.remotePlayers.filter(p => p.collider && p.collider == object).shift();
 
         console.log("REMOTE COLLISION WITH : ", remotePlayer);
-        const message = "Hello!"
+        const message = "Hello, how are You?"
         this.speechBubble.player = remotePlayer;
         this.speechBubble.update(message);
         this.scene.add(this.speechBubble.mesh);
@@ -443,7 +446,7 @@ export default class Game {
         if (this.speechBubble.mesh.parent!==null) {
           this.speechBubble.mesh.parent.remove(this.speechBubble.mesh)
         };
-        
+
         // Exit from chat view
         this.player.activeCamera = this.player.cameras.back;
         this.player.action = 'Idle';

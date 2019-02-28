@@ -2,7 +2,7 @@
 
 ## Description
 
-A fun interaction between Phoenix API with WebGL rendering (Three.js).
+A fun interaction between Phoenix API (+websocket) with WebGL rendering (Three.js).
 
 There is no database, just connect 2 browsers.
 

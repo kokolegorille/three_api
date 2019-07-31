@@ -281,24 +281,24 @@ export default class Game {
 
   playerControl(forward, turn){
     turn = -turn;
-		if (forward>0.3){
-			if (this.player.action != 'Walking' && this.player.action != 'Running') this.player.action = 'Walking';
-		} else if (forward<-0.3){
-			if (this.player.action != 'Walking Backwards') this.player.action = 'Walking Backwards';
+	if (forward>0.3){
+		if (this.player.action != 'Walking' && this.player.action != 'Running') this.player.action = 'Walking';
+	} else if (forward<-0.3){
+		if (this.player.action != 'Walking Backwards') this.player.action = 'Walking Backwards';
+	} else {
+		forward = 0;
+		if (turn>0.1){
+			if (this.player.action != 'Left Turn') this.player.action = 'Left Turn';
+		} else if (turn<-0.1) {
+			if (this.player.action != 'Right Turn') this.player.action = 'Right Turn';
 		} else {
-      forward = 0;
-      if (turn>0.1){
-        if (this.player.action != 'Left Turn') this.player.action = 'Left Turn';
-      } else if (turn<-0.1) {
-        if (this.player.action != 'Right Turn') this.player.action = 'Right Turn';
-			} else {
-        turn = 0;
-				if (this.player.action != 'Idle') this.player.action = 'Idle';
-			}
+			turn = 0;
+			if (this.player.action != 'Idle') this.player.action = 'Idle';
 		}
-		if (forward==0 && turn==0){
-			delete this.player.motion;
-		} else{
+	}
+	if (forward==0 && turn==0){
+		delete this.player.motion;
+	} else{
 			this.player.motion = { forward, turn }; 
     }
   }

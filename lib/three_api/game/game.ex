@@ -2,14 +2,21 @@ defmodule ThreeApi.Game do
   alias ThreeApi.Game.{Player, Worker, WorkerSup}
 
   def get_worker(name) do
-    case Worker.whereis_name(name) do
-      nil ->
-        case WorkerSup.start_worker(name) do
-          {:ok, worker} -> worker
-          {:error, _reason} -> nil
-        end
-      worker ->
-        worker
+    # case Worker.whereis_name(name) do
+    #   nil ->
+    #     case WorkerSup.start_worker(name) do
+    #       {:ok, worker} -> worker
+    #       {:error, _reason} -> nil
+    #     end
+    #   worker ->
+    #     worker
+    # end
+	
+    # https://elixirforum.com/t/how-to-check-globally-named-agent/24056/2
+    case WorkerSup.start_worker(name) do
+      {:ok, worker} -> worker
+      {:error, {:already_started, worker}} -> worker
+      _response -> nil
     end
   end
 

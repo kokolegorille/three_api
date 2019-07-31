@@ -22,3 +22,5 @@ or
     $ npm install
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+
+Open a second browser and jump to the same address.

@@ -4,7 +4,7 @@
 
 A fun interaction between Phoenix API (+websocket) with WebGL rendering (Three.js).
 
-There is no database, just connect 2 browsers.
+There is no database, just connect 2 browsers to localhost:4000 after the server has started.
 
 To start your Phoenix server:
 

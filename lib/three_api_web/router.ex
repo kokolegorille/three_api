@@ -10,6 +10,6 @@ defmodule ThreeApiWeb.Router do
   end
 
   scope "/", ThreeApiWeb do
-    get "/*path", StaticController, :index
+    get "/*path", PageController, :index
   end
 end

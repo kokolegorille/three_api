@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "phoenix": "^1.4.9",
-    "three": "^0.107.0",
+    "three": "^0.137.0",
     "three-orbit-controls": "^82.1.0"
   },
   "main": "index.js",
